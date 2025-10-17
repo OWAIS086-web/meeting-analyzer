@@ -82,7 +82,7 @@ To get your xAI API key:
 
 ## Usage
 
-### mainapplication  Web Interface (Recommended)
+### main application  Web Interface (high Recommended)
 
 ```bash
 app.py
@@ -295,3 +295,4 @@ For issues or questions:
 3. Test individual components (audio processor, summarizer_2) separately
 
 4. Check Grok API status at https://status.x.ai
+
