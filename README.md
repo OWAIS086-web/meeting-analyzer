@@ -82,6 +82,19 @@ To get your xAI API key:
 
 ## Usage
 
+### mainapplication  Web Interface (Recommended)
+
+```bash
+app.py
+open http://127.0.0.1:5000/ 
+```
+
+This will open a web interface in your browser with:
+- Live transcription display
+- Real-time IT analysis from Grok
+- Issue detection and recommendations
+- Session statistics and debug info
+- 
 ### Option 1: Streamlit Web Interface (Recommended)
 
 ```bash
@@ -280,4 +293,5 @@ For issues or questions:
 1. Check troubleshooting section above
 2. Verify all dependencies are installed correctly
 3. Test individual components (audio processor, summarizer_2) separately
+
 4. Check Grok API status at https://status.x.ai
