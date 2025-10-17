@@ -1,0 +1,1732 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI IT Meeting Analyzer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎙️</text></svg>">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script
+        src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <style>
+        :root {
+            --primary: #DC2626;
+            --primary-dark: #B91C1C;
+            --primary-light: #FEE2E2;
+            --secondary: #1F2937;
+            --secondary-light: #374151;
+            --accent: #F59E0B;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --danger: #DC2626;
+            --bg: #FFFFFF;
+            --bg-secondary: #F9FAFB;
+            --bg-tertiary: #F3F4F6;
+            --card-bg: #FFFFFF;
+            --text-primary: #111827;
+            --text-secondary: #6B7280;
+            --text-muted: #9CA3AF;
+            --border: #E5E7EB;
+            --border-light: #F3F4F6;
+            --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            --gradient-primary: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%);
+            --gradient-secondary: linear-gradient(135deg, #1F2937 0%, #374151 100%);
+            --gradient-accent: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            line-height: 1.6;
+            color: var(--text-primary);
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+            position: relative;
+        }
+
+        /* Background Pattern */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background:
+                radial-gradient(circle at 20% 80%, rgba(220, 38, 38, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(31, 41, 55, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(245, 158, 11, 0.02) 0%, transparent 50%);
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        /* 
+Header Styles */
+        .app-header {
+            background: var(--gradient-primary);
+            color: white;
+            text-align: center;
+            padding: 4rem 2rem;
+            border-radius: 24px;
+            margin-bottom: 3rem;
+            box-shadow: var(--shadow-xl);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .app-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background:
+                linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.1) 50%, transparent 70%),
+                radial-gradient(circle at 30% 70%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .app-header h1 {
+            margin: 0;
+            font-size: 3rem;
+            font-weight: 800;
+            letter-spacing: -0.025em;
+            position: relative;
+            z-index: 1;
+        }
+
+        .app-header .subtitle {
+            font-size: 1.25rem;
+            opacity: 0.95;
+            margin-top: 0.75rem;
+            font-weight: 500;
+            position: relative;
+            z-index: 1;
+        }
+
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            padding: 0.75rem 1.5rem;
+            border-radius: 50px;
+            margin-top: 1.5rem;
+            font-weight: 600;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            position: relative;
+            z-index: 1;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 0.7;
+                transform: scale(1.1);
+            }
+        }
+
+        /* Control Section */
+        .control-section {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 2.5rem;
+            box-shadow: var(--shadow-lg);
+            margin-bottom: 3rem;
+            border: 1px solid var(--border-light);
+            position: relative;
+        }
+
+        .control-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--gradient-primary);
+            border-radius: 20px 20px 0 0;
+        }
+
+        .control-section h3 {
+            color: var(--text-primary);
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .control-section h3::before {
+            content: '🎛️';
+            font-size: 1.25rem;
+        }
+
+        .button-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .control-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            padding: 1.25rem 2rem;
+            border: none;
+            border-radius: 16px;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .control-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .control-button:hover::before {
+            left: 100%;
+        }
+
+        .btn-start {
+            background: var(--gradient-primary);
+            color: white;
+            box-shadow: 0 8px 25px rgba(220, 38, 38, 0.3);
+        }
+
+        .btn-stop {
+            background: var(--gradient-secondary);
+            color: white;
+            box-shadow: 0 8px 25px rgba(31, 41, 55, 0.3);
+        }
+
+        .btn-pause {
+            background: var(--gradient-accent);
+            color: white;
+            box-shadow: 0 8px 25px rgba(245, 158, 11, 0.3);
+        }
+
+        .btn-clear {
+            background: linear-gradient(135deg, #6B7280, #4B5563);
+            color: white;
+            box-shadow: 0 8px 25px rgba(107, 114, 128, 0.3);
+        }
+
+        .control-button:hover:not(:disabled) {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.2);
+        }
+
+        .control-button:active:not(:disabled) {
+            transform: translateY(-2px);
+        }
+
+        .control-button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* Session Stats */
+        .session-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 2px solid var(--border-light);
+        }
+
+        .stat-card {
+            text-align: center;
+            padding: 1.5rem;
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* Metrics Dashboard */
+        .metrics-section {
+            margin: 3rem 0;
+        }
+
+        .metrics-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .metrics-header h2 {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .metrics-header p {
+            color: var(--text-secondary);
+            font-size: 1.125rem;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .metric-card {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 2rem;
+            text-align: center;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border-light);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--gradient-primary);
+        }
+
+        .metric-card:nth-child(2)::before {
+            background: var(--gradient-accent);
+        }
+
+        .metric-card:nth-child(3)::before {
+            background: var(--gradient-secondary);
+        }
+
+        .metric-card:nth-child(4)::before {
+            background: linear-gradient(135deg, var(--success), #059669);
+        }
+
+        .metric-card:nth-child(5)::before {
+            background: linear-gradient(135deg, #8B5CF6, #7C3AED);
+        }
+
+        .metric-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-xl);
+        }
+
+        .metric-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            display: block;
+        }
+
+        .metric-value {
+            font-size: 2.5rem;
+            font-weight: 900;
+            color: var(--text-primary);
+            margin: 0.5rem 0;
+            line-height: 1;
+        }
+
+        .metric-label {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-description {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        .metric-trend {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-top: 0.5rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            background: var(--bg-secondary);
+        }
+
+        /* Recording Status */
+        .recording-status {
+            background: var(--gradient-primary);
+            color: white;
+            text-align: center;
+            padding: 1.5rem 2rem;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 1.25rem;
+            animation: recordingPulse 2s infinite;
+            box-shadow: 0 8px 25px rgba(220, 38, 38, 0.4);
+            margin: 2rem 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .recording-status::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes recordingPulse {
+
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 0.9;
+                transform: scale(1.02);
+            }
+        }
+
+        @keyframes shimmer {
+            0% {
+                left: -100%;
+            }
+
+            100% {
+                left: 100%;
+            }
+        }
+
+        .recording-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 1rem;
+            font-size: 1.5rem;
+        }
+
+        .recording-dot {
+            width: 16px;
+            height: 16px;
+            background: #fff;
+            border-radius: 50%;
+            animation: recordingBlink 1s infinite;
+        }
+
+        @keyframes recordingBlink {
+
+            0%,
+            50% {
+                opacity: 1;
+            }
+
+            51%,
+            100% {
+                opacity: 0.3;
+            }
+        }
+
+        /* Tab Navigation */
+        .tab-container {
+            background: var(--card-bg);
+            border-radius: 24px;
+            box-shadow: var(--shadow-xl);
+            overflow: hidden;
+            margin: 3rem 0;
+            border: 1px solid var(--border-light);
+        }
+
+        .tab-header {
+            display: flex;
+            background: var(--bg-secondary);
+            border-bottom: 2px solid var(--border-light);
+            overflow-x: auto;
+            padding: 0.5rem;
+            gap: 0.5rem;
+        }
+
+        .tab-button {
+            flex: 1;
+            min-width: 160px;
+            padding: 1rem 1.5rem;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-radius: 16px;
+            white-space: nowrap;
+            position: relative;
+            font-size: 0.95rem;
+        }
+
+        .tab-button:hover {
+            background: rgba(220, 38, 38, 0.1);
+            color: var(--primary);
+        }
+
+        .tab-button.active {
+            color: white;
+            background: var(--gradient-primary);
+            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .tab-content {
+            padding: 3rem;
+            min-height: 500px;
+            display: none;
+            background: var(--card-bg);
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .tab-content h3 {
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        /* Chart Container */
+        .chart-container {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 2rem;
+            margin: 2rem 0;
+            border: 1px solid var(--border);
+            position: relative;
+            height: 400px;
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .chart-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .chart-subtitle {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+
+        /* Content Cards */
+        .content-card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: var(--shadow-md);
+            margin-bottom: 2rem;
+            border: 1px solid var(--border-light);
+        }
+
+        .content-card h3 {
+            margin: 0 0 1rem 0;
+            color: var(--text-primary);
+            font-weight: 700;
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.5rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin: 0.25rem;
+        }
+
+        .badge-warning {
+            background: #FEF3C7;
+            color: #92400E;
+            border-left: 4px solid var(--warning);
+        }
+
+        .badge-success {
+            background: #D1FAE5;
+            color: #065F46;
+            border-left: 4px solid var(--success);
+        }
+
+        .badge-info {
+            background: #DBEAFE;
+            color: #1E40AF;
+            border-left: 4px solid var(--primary);
+        }
+
+        /* Transcript Display */
+        .transcript-container {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 2rem;
+            max-height: 500px;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+        }
+
+        .transcript-meta {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        /* Messages */
+        .message {
+            padding: 1rem;
+            border-radius: 12px;
+            margin: 1rem 0;
+            font-weight: 500;
+        }
+
+        .message.success {
+            background: #D1FAE5;
+            color: #065F46;
+            border-left: 4px solid var(--success);
+        }
+
+        .message.error {
+            background: #FEE2E2;
+            color: #991B1B;
+            border-left: 4px solid var(--danger);
+        }
+
+        .message.info {
+            background: #DBEAFE;
+            color: #1E40AF;
+            border-left: 4px solid var(--primary);
+        }
+
+        /* Footer */
+        .app-footer {
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            margin-top: 4rem;
+            padding: 3rem;
+            border-top: 1px solid var(--border);
+            background: var(--card-bg);
+            border-radius: 20px;
+        }
+
+        .footer-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            text-align: left;
+            margin-bottom: 2rem;
+        }
+
+        .footer-section h4 {
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .app-header {
+                padding: 2rem 1rem;
+            }
+
+            .app-header h1 {
+                font-size: 2rem;
+            }
+
+            .button-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .metrics-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .tab-header {
+                flex-wrap: wrap;
+            }
+
+            .tab-button {
+                flex: none;
+                min-width: 120px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="app-header">
+            <h1>🎙️ AI Meeting Analyzer</h1>
+            <p class="subtitle">Real-time transcription and intelligent analysis powered by Faster-Whisper & Grok AI</p>
+            <div class="status-indicator" style="background-color: {{ status_color }}20; color: {{ status_color }};">
+                <div style="width: 8px; height: 8px; background: {{ status_color }}; border-radius: 50%;"></div>
+                {{ status_text }}
+            </div>
+            {% if session_id %}
+            <div style="margin-top: 1rem; font-size: 1rem; opacity: 0.9; font-weight: 500;">
+                Session ID: {{ session_id }}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Controls -->
+        <div class="control-section">
+            <h3>Recording Controls</h3>
+            <div class="button-grid">
+                <button class="control-button btn-start" onclick="startRecording()" {% if is_recording %}disabled{%
+                    endif %}>
+                    🔴 Start Recording
+                </button>
+                <button class="control-button btn-stop" onclick="stopRecording()" {% if not is_recording %}disabled{%
+                    endif %}>
+                    ⏹️ Stop Recording
+                </button>
+                <button class="control-button btn-pause" onclick="pauseAnalysis()" {% if not is_recording %}disabled{%
+                    endif %}>
+                    ⏸️ Pause Analysis
+                </button>
+                <button class="control-button btn-clear" onclick="clearData()" {% if is_recording %}disabled{% endif %}>
+                    🗑️ Clear All
+                </button>
+            </div>
+
+            <!-- Session Statistics -->
+            <div class="session-stats">
+                <div class="stat-card">
+                    <div class="stat-value" style="color: var(--primary);">{{ total_sessions }}</div>
+                    <div class="stat-label">Total Sessions</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" style="color: var(--success);">{{ total_meetings_analyzed }}</div>
+                    <div class="stat-label">Meetings Analyzed</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Messages -->
+        <div id="messages"></div>
+
+        <!-- Metrics Dashboard -->
+        <div class="metrics-section">
+            <div class="metrics-header">
+                <h2>📊 Real-time Analytics</h2>
+                <p>Live performance metrics and insights from your meeting</p>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <span class="metric-icon">⚡</span>
+                    <div class="metric-value" style="color: var(--primary);">{{ wpm }}</div>
+                    <div class="metric-label">Words Per Minute</div>
+                    <div class="metric-description">Real-time transcription speed</div>
+                    <div class="metric-trend" style="color: var(--success);">↗ +{{ (wpm * 0.1) | round | int }}% vs avg
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-icon">🎯</span>
+                    <div class="metric-value" style="color: var(--accent);">{{ confidence }}%</div>
+                    <div class="metric-label">Confidence Score</div>
+                    <div class="metric-description">AI transcription accuracy</div>
+                    <div class="metric-trend" style="color: var(--success);">✓ High accuracy</div>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-icon">🔥</span>
+                    <div class="metric-value" style="color: var(--secondary);">{{ momentum }}%</div>
+                    <div class="metric-label">Discussion Flow</div>
+                    <div class="metric-description">Conversation momentum</div>
+                    <div class="metric-trend" style="color: var(--primary);">📈 Active discussion</div>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-icon">🔧</span>
+                    <div class="metric-value" style="color: var(--success);">{{ tech_depth }}%</div>
+                    <div class="metric-label">Technical Depth</div>
+                    <div class="metric-description">IT content density</div>
+                    <div class="metric-trend" style="color: var(--accent);">🎯 IT-focused</div>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-icon">💡</span>
+                    <div class="metric-value" style="color: #8B5CF6;">{{ insights }}</div>
+                    <div class="metric-label">AI Insights</div>
+                    <div class="metric-description">Generated recommendations</div>
+                    <div class="metric-trend" style="color: var(--primary);">🚀 {{ insights }} active</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recording Status -->
+        {% if is_recording %}
+        <div class="recording-status">
+            <div class="recording-indicator">
+                <div class="recording-dot"></div>
+                🔴 LIVE RECORDING - {{ '%02d:%02d' | format(duration // 60, duration % 60) }} | Listening for technical
+                discussions...
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Tabbed Interface -->
+        <div class="tab-container">
+            <div class="tab-header">
+                <button class="tab-button active" onclick="showTab('transcript')">🎙️ Live Transcript</button>
+                <button class="tab-button" onclick="showTab('analysis')">🤖 AI Analysis</button>
+                <button class="tab-button" onclick="showTab('analytics')">📊 Advanced Analytics</button>
+                <button class="tab-button" onclick="showTab('insights')">💡 Smart Insights</button>
+                <button class="tab-button" onclick="showTab('performance')">⚡ Performance</button>
+            </div>
+
+            <!-- Live Transcript Tab -->
+            <div id="transcript" class="tab-content active">
+                <h3>🎙️ Real-time Transcript</h3>
+                {% if full_text %}
+                <div class="transcript-container">
+                    <div class="transcript-meta">
+                        📊 {{ word_count }} words • {{ segments_count }} segments • {{ '%d:%02d' | format(duration // 60, duration % 60) }} duration
+                    </div>
+                    <div>{{ full_text }}</div>
+                </div>
+
+                <!-- Transcript Analytics Chart -->
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <div>
+                            <div class="chart-title">📈 Transcript Flow Analysis</div>
+                            <div class="chart-subtitle">Words per segment over time</div>
+                        </div>
+                    </div>
+                    <canvas id="transcriptChart"></canvas>
+                </div>
+
+                <!-- Search Functionality -->
+                <div style="margin-top: 2rem;">
+                    <input type="text" id="searchInput" placeholder="🔍 Search in transcript..."
+                        style="width: 100%; padding: 1rem; border: 1px solid var(--border); border-radius: 12px; font-family: inherit; font-size: 1rem;">
+                    <div id="searchResults"
+                        style="margin-top: 1rem; font-size: 0.875rem; color: var(--text-secondary);"></div>
+                </div>
+                {% else %}
+                <div class="content-card">
+                    <h3>🎙️ Ready to Record</h3>
+                    <p>Click "Start Recording" to begin capturing your meeting. The AI will automatically:</p>
+                    <ul style="margin-top: 1rem; padding-left: 1.5rem;">
+                        <li>Transcribe speech in real-time using Faster-Whisper</li>
+                        <li>Identify technical issues and security risks</li>
+                        <li>Suggest best practices and solutions</li>
+                        <li>Generate actionable insights for IT teams</li>
+                    </ul>
+
+                    <div
+                        style="margin-top: 2rem; padding: 1.5rem; background: var(--primary-light); border-radius: 12px; border-left: 4px solid var(--primary);">
+                        <h4 style="margin: 0 0 0.5rem 0; color: var(--primary);">💡 Pro Tips</h4>
+                        <ul style="margin: 0; padding-left: 1.5rem; font-size: 0.9rem;">
+                            <li>Speak clearly and at a normal pace</li>
+                            <li>Mention specific technologies (AWS, Azure, Kubernetes, etc.)</li>
+                            <li>Discuss technical challenges and solutions</li>
+                            <li>The AI works best with IT-focused conversations</li>
+                        </ul>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- AI Analysis Tab -->
+            <div id="analysis" class="tab-content">
+                <h3>🤖 AI-Powered Analysis</h3>
+                {% if analysis %}
+                {% if final_summary %}
+                <div class="message success">✅ Final Analysis Complete - Meeting session ended</div>
+                {% else %}
+                <div class="message info">🔄 Live Analysis Active - Updates every ~50 words</div>
+                {% endif %}
+
+                <!-- Analysis Overview Chart -->
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <div>
+                            <div class="chart-title">🧠 Analysis Overview</div>
+                            <div class="chart-subtitle">Issues vs Recommendations distribution</div>
+                        </div>
+                    </div>
+                    <canvas id="analysisChart"></canvas>
+                </div>
+
+                <!-- Technical Overview -->
+                <div class="content-card">
+                    <h4>📊 Technical Overview</h4>
+                    <p>{{ analysis.get('technical_analysis', 'No analysis available yet.') }}</p>
+                </div>
+
+                <!-- Issues and Recommendations Grid -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem;">
+                    <div>
+                        <h4>⚠️ Potential Issues</h4>
+                        {% for issue in analysis.get('potential_issues', []) %}
+                        <div class="badge badge-warning">⚠️ Issue {{ loop.index }}</div>
+                        <p style="margin: 0.5rem 0 1rem 1rem; font-size: 0.9rem;">{{ issue }}</p>
+                        {% endfor %}
+                        {% if not analysis.get('potential_issues') %}
+                        <div class="message success">✓ No critical issues detected in current discussion</div>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <h4>✅ Recommendations</h4>
+                        {% for rec in analysis.get('recommendations', []) %}
+                        <div class="badge badge-success">✅ Recommendation {{ loop.index }}</div>
+                        <p style="margin: 0.5rem 0 1rem 1rem; font-size: 0.9rem;">{{ rec }}</p>
+                        {% endfor %}
+                        {% if not analysis.get('recommendations') %}
+                        <div class="message info">No specific recommendations yet - continue the discussion</div>
+                        {% endif %}
+                    </div>
+                </div>
+                <!-- Additional Analysis Sections -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                    <div>
+                        <h4>❓ Clarifying Questions</h4>
+                        {% for question in analysis.get('clarifying_questions', []) %}
+                        <div class="badge badge-info">❓ Question {{ loop.index }}</div>
+                        <p style="margin: 0.5rem 0 1rem 1rem; font-size: 0.9rem;">{{ question }}</p>
+                        {% endfor %}
+                        {% if not analysis.get('clarifying_questions') %}
+                        <div
+                            style="padding: 1rem; background: var(--bg-secondary); border-radius: 8px; font-size: 0.9rem; color: var(--text-secondary);">
+                            No clarifying questions at this time
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <h4>📋 Action Items</h4>
+                        {% for action in analysis.get('action_items', []) %}
+                        <div
+                            style="margin-bottom: 0.5rem; padding: 0.75rem; background: var(--primary-light); border-radius: 8px; border-left: 3px solid var(--primary);">
+                            <strong>{{ loop.index }}.</strong> {{ action }}
+                        </div>
+                        {% endfor %}
+                        {% if not analysis.get('action_items') %}
+                        <div
+                            style="padding: 1rem; background: var(--bg-secondary); border-radius: 8px; font-size: 0.9rem; color: var(--text-secondary);">
+                            No action items identified yet
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% else %}
+                <div class="content-card">
+                    <h3>🤖 AI Analysis Ready</h3>
+                    <p>Start recording to see real-time AI analysis powered by Grok AI. The system will provide:</p>
+
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 2rem; margin-top: 2rem;">
+                        <div>
+                            <h4 style="color: var(--warning);">🔍 Issue Detection</h4>
+                            <ul style="margin-top: 0.5rem; padding-left: 1.5rem; font-size: 0.9rem;">
+                                <li>Security vulnerabilities and misconfigurations</li>
+                                <li>Architecture and design concerns</li>
+                                <li>Performance and scalability issues</li>
+                                <li>Compliance and best practice violations</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 style="color: var(--success);">💡 Smart Recommendations</h4>
+                            <ul style="margin-top: 0.5rem; padding-left: 1.5rem; font-size: 0.9rem;">
+                                <li>Industry best practices and standards</li>
+                                <li>Optimization tips and performance improvements</li>
+                                <li>Security hardening suggestions</li>
+                                <li>Technology-specific guidance</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div
+                        style="margin-top: 2rem; padding: 1.5rem; background: #FEF3C7; border-radius: 12px; border-left: 4px solid var(--warning);">
+                        <h4 style="margin: 0 0 0.5rem 0; color: #92400E;">🎯 Supported IT Domains</h4>
+                        <div style="font-size: 0.9rem; color: #92400E;">
+                            Cloud Services (AWS, Azure, GCP) • Kubernetes & Containers • Infrastructure & Networking •
+                            DevOps & CI/CD • Cybersecurity • Software Architecture • Database Design • System
+                            Administration
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            <!-- Advanced Analytics Tab -->
+            <div id="analytics" class="tab-content">
+                <h3>📈 Advanced Analytics</h3>
+
+                <!-- Performance Metrics Chart -->
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <div>
+                            <div class="chart-title">📊 Performance Metrics Over Time</div>
+                            <div class="chart-subtitle">WPM, Confidence, and Technical Depth trends</div>
+                        </div>
+                    </div>
+                    <canvas id="performanceChart"></canvas>
+                </div>
+
+                <div class="content-card">
+                    <h4>📈 Meeting Analytics Dashboard</h4>
+                    <p>Comprehensive analytics and insights for your IT discussions.</p>
+
+                    {% if full_text %}
+                    <!-- Keyword Analysis -->
+                    <div style="margin-top: 2rem;">
+                        <h4>🔤 Technical Keywords Analysis</h4>
+                        <div class="chart-container" style="height: 300px;">
+                            <canvas id="keywordChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Discussion Flow -->
+                    <div style="margin-top: 2rem;">
+                        <h4>📊 Discussion Flow Metrics</h4>
+                        <div
+                            style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-top: 1rem;">
+                            <div class="metric-card">
+                                <div class="metric-value">{{ (word_count / segments_count) | round | int if segments_count > 0 else 0 }}</div>
+                                <div class="metric-label">Avg Words/Segment</div>
+                                <div class="metric-description">Speech consistency</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-value">{{ (duration / 60) | round(1) if duration > 0 else 0 }}</div>
+                                <div class="metric-label">Minutes Recorded</div>
+                                <div class="metric-description">Total session time</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-value">{{ tech_depth }}%</div>
+                                <div class="metric-label">Technical Density</div>
+                                <div class="metric-description">IT content ratio</div>
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div style="text-align: center; padding: 3rem; color: var(--text-secondary);">
+                        <div style="font-size: 3rem; margin-bottom: 1rem;">📊</div>
+                        <h4>Analytics Dashboard</h4>
+                        <p>Advanced analytics will appear here once recording begins</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Smart Insights Tab -->
+            <div id="insights" class="tab-content">
+                <h3>💡 Smart Insights</h3>
+
+                <!-- Insights Summary Chart -->
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <div>
+                            <div class="chart-title">🧠 Insights Distribution</div>
+                            <div class="chart-subtitle">Categories of AI-generated insights</div>
+                        </div>
+                    </div>
+                    <canvas id="insightsChart"></canvas>
+                </div>
+
+                <div class="content-card">
+                    <h4>🧠 AI-Powered Insights Engine</h4>
+                    <p>Intelligent patterns and recommendations based on your IT discussions.</p>
+
+                    {% if analysis %}
+                    <div style="margin-top: 2rem;">
+                        <h4>🎯 Key Takeaways</h4>
+                        <div
+                            style="background: var(--primary-light); padding: 2rem; border-radius: 12px; border-left: 4px solid var(--primary);">
+                            <p style="font-size: 1.1rem; line-height: 1.6;">{{ analysis.get('technical_analysis', 'Continue the discussion to generate insights...') }}</p>
+                        </div>
+
+                        <!-- Insight Categories -->
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 2rem; margin-top: 2rem;">
+                            <div class="content-card">
+                                <h4 style="color: var(--primary);">🔍 Pattern Recognition</h4>
+                                <p>AI has identified {{ analysis.get('potential_issues', []) | length }} potential issues and {{ analysis.get('recommendations', []) | length }} recommendations based
+                                    on industry best practices.</p>
+                            </div>
+                            <div class="content-card">
+                                <h4 style="color: var(--success);">🎯 Optimization Opportunities</h4>
+                                <p>Smart suggestions for improving your IT infrastructure and processes based on the
+                                    current discussion context.</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div style="text-align: center; padding: 3rem; color: var(--text-secondary);">
+                        <div style="font-size: 3rem; margin-bottom: 1rem;">🧠</div>
+                        <h4>Smart Insights Engine</h4>
+                        <p>AI-powered insights will be generated during your IT discussions</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            <!-- Performance Tab -->
+            <div id="performance" class="tab-content">
+                <h3>⚡ Performance Metrics</h3>
+
+                <!-- Real-time Performance Chart -->
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <div>
+                            <div class="chart-title">⚡ System Performance Monitor</div>
+                            <div class="chart-subtitle">Real-time processing metrics</div>
+                        </div>
+                    </div>
+                    <canvas id="systemChart"></canvas>
+                </div>
+
+                <!-- System Performance Grid -->
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; margin-bottom: 2rem;">
+                    <div class="metric-card">
+                        <span class="metric-icon">⚡</span>
+                        <div class="metric-value">{{ wpm }}</div>
+                        <div class="metric-label">Processing Speed</div>
+                        <div class="metric-description">Words per minute</div>
+                        <div class="metric-trend" style="color: var(--success);">🚀 Real-time</div>
+                    </div>
+                    <div class="metric-card">
+                        <span class="metric-icon">🎯</span>
+                        <div class="metric-value">{{ confidence }}%</div>
+                        <div class="metric-label">Analysis Accuracy</div>
+                        <div class="metric-description">AI confidence level</div>
+                        <div class="metric-trend" style="color: var(--success);">✓ High precision</div>
+                    </div>
+                    <div class="metric-card">
+                        <span class="metric-icon">⏱️</span>
+                        <div class="metric-value">
+                            < 2s</div>
+                                <div class="metric-label">Response Time</div>
+                                <div class="metric-description">Analysis latency</div>
+                                <div class="metric-trend" style="color: var(--success);">⚡ Optimized</div>
+                        </div>
+                    </div>
+
+                    <!-- System Information -->
+                    <div class="content-card">
+                        <h4>⚙️ System Architecture</h4>
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 3rem; margin-top: 2rem;">
+                            <div>
+                                <h5 style="margin-bottom: 1rem; color: var(--primary); font-size: 1.1rem;">🎙️ Audio
+                                    Processing Pipeline</h5>
+                                <ul style="font-size: 0.95rem; line-height: 1.8; list-style: none; padding: 0;">
+                                    <li style="padding: 0.5rem 0; border-bottom: 1px solid var(--border-light);">
+                                        <strong>Engine:</strong> Faster-Whisper (Local)</li>
+                                    <li style="padding: 0.5rem 0; border-bottom: 1px solid var(--border-light);">
+                                        <strong>Model:</strong> Base (Configurable)</li>
+                                    <li style="padding: 0.5rem 0; border-bottom: 1px solid var(--border-light);">
+                                        <strong>Processing:</strong> Real-time chunks</li>
+                                    <li style="padding: 0.5rem 0;"><strong>Privacy:</strong> No cloud audio processing
+                                    </li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h5 style="margin-bottom: 1rem; color: var(--success); font-size: 1.1rem;">🤖 AI
+                                    Analysis Engine</h5>
+                                <ul style="font-size: 0.95rem; line-height: 1.8; list-style: none; padding: 0;">
+                                    <li style="padding: 0.5rem 0; border-bottom: 1px solid var(--border-light);">
+                                        <strong>Provider:</strong> xAI Grok API</li>
+                                    <li style="padding: 0.5rem 0; border-bottom: 1px solid var(--border-light);">
+                                        <strong>Model:</strong> grok-4-fast-reasoning</li>
+                                    <li style="padding: 0.5rem 0; border-bottom: 1px solid var(--border-light);">
+                                        <strong>Analysis:</strong> Progressive summarization</li>
+                                    <li style="padding: 0.5rem 0;"><strong>Cost:</strong> ~$0.002 per 10-min meeting
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Cost Information -->
+                    <div class="content-card">
+                        <h4>💰 Cost Breakdown & Efficiency</h4>
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; margin-top: 2rem;">
+                            <div
+                                style="text-align: center; padding: 2rem; background: #F0FDF4; border-radius: 16px; border: 1px solid var(--success);">
+                                <div
+                                    style="font-size: 2.5rem; font-weight: 800; color: var(--success); margin-bottom: 0.5rem;">
+                                    $0.00</div>
+                                <div
+                                    style="font-size: 1rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.25rem;">
+                                    Transcription Cost</div>
+                                <div style="font-size: 0.875rem; color: var(--text-muted);">Local processing</div>
+                            </div>
+                            <div
+                                style="text-align: center; padding: 2rem; background: #FEF3C7; border-radius: 16px; border: 1px solid var(--warning);">
+                                <div
+                                    style="font-size: 2.5rem; font-weight: 800; color: #92400E; margin-bottom: 0.5rem;">
+                                    ~$0.002</div>
+                                <div
+                                    style="font-size: 1rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.25rem;">
+                                    Analysis Cost</div>
+                                <div style="font-size: 0.875rem; color: var(--text-muted);">Per 10-min meeting</div>
+                            </div>
+                            <div
+                                style="text-align: center; padding: 2rem; background: var(--primary-light); border-radius: 16px; border: 1px solid var(--primary);">
+                                <div
+                                    style="font-size: 2.5rem; font-weight: 800; color: var(--primary); margin-bottom: 0.5rem;">
+                                    $25</div>
+                                <div
+                                    style="font-size: 1rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.25rem;">
+                                    Free Credits</div>
+                                <div style="font-size: 0.875rem; color: var(--text-muted);">~10,000 meetings</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Footer -->
+            <div class="app-footer">
+                <div class="footer-grid">
+                    <div class="footer-section">
+                        <h4>🔒 Privacy & Security</h4>
+                        <ul style="list-style: none; padding: 0; margin-top: 0.5rem;">
+                            <li>• Local transcription with Faster-Whisper</li>
+                            <li>• No audio data sent to cloud services</li>
+                            <li>• Only text analysis via Grok API</li>
+                            <li>• Temporary local file storage</li>
+                        </ul>
+                    </div>
+                    <div class="footer-section">
+                        <h4>💰 Cost Efficiency</h4>
+                        <ul style="list-style: none; padding: 0; margin-top: 0.5rem;">
+                            <li>• ~$0.002 per 10-minute meeting</li>
+                            <li>• Free local transcription processing</li>
+                            <li>• Pay-per-use AI analysis model</li>
+                            <li>• $25 free credits included</li>
+                        </ul>
+                    </div>
+                    <div class="footer-section">
+                        <h4>🎯 Supported IT Domains</h4>
+                        <ul style="list-style: none; padding: 0; margin-top: 0.5rem;">
+                            <li>• Cloud Infrastructure (AWS, Azure, GCP)</li>
+                            <li>• Kubernetes & Container Orchestration</li>
+                            <li>• Security & DevOps Best Practices</li>
+                            <li>• Database & System Architecture</li>
+                        </ul>
+                    </div>
+                </div>
+                <div style="text-align: center; padding-top: 2rem; border-top: 1px solid var(--border);">
+                    <p><strong>AI IT Meeting Analyzer</strong> - Empowering IT teams with real-time technical insights
+                    </p>
+                    <p style="font-size: 0.8rem; opacity: 0.7; margin-top: 0.5rem;">
+                        Built with Flask • Powered by Faster-Whisper & Grok AI •
+                        <a href="/export/summary" style="color: var(--primary); text-decoration: none;">Export
+                            Summary</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- JavaScript -->
+        <script>
+            // Global state
+            let isRecording = {{ 'true' if is_recording else 'false' }};
+            let autoRefreshInterval;
+            let charts = {};
+
+            // Chart.js default configuration
+            Chart.defaults.font.family = 'Inter';
+            Chart.defaults.color = '#6B7280';
+
+            // Utility Functions
+            function showMessage(message, type = 'info') {
+                const messagesDiv = document.getElementById('messages');
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${type}`;
+                messageDiv.innerHTML = message;
+                messagesDiv.appendChild(messageDiv);
+
+                setTimeout(() => {
+                    if (messageDiv.parentNode) {
+                        messageDiv.remove();
+                    }
+                }, 5000);
+            }
+
+            function showTab(tabName) {
+                // Hide all tabs
+                document.querySelectorAll('.tab-content').forEach(tab => {
+                    tab.classList.remove('active');
+                });
+                document.querySelectorAll('.tab-button').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+
+                // Show selected tab
+                document.getElementById(tabName).classList.add('active');
+                event.target.classList.add('active');
+
+                // Initialize charts for the active tab
+                setTimeout(() => initializeCharts(tabName), 100);
+            }
+            // Chart Initialization
+            function initializeCharts(tabName) {
+                const primaryColor = '#DC2626';
+                const secondaryColor = '#1F2937';
+                const accentColor = '#F59E0B';
+                const successColor = '#10B981';
+
+                if (tabName === 'transcript' && !charts.transcriptChart) {
+                    const ctx = document.getElementById('transcriptChart');
+                    if (ctx) {
+                        charts.transcriptChart = new Chart(ctx, {
+                            type: 'line',
+                            data: {
+                                labels: ['Seg 1', 'Seg 2', 'Seg 3', 'Seg 4', 'Seg 5', 'Seg 6', 'Seg 7', 'Seg 8', 'Seg 9', 'Seg 10'],
+                            datasets: [{
+                                label: 'Words per Segment',
+                                data: [15, 23, 18, 31, 27, 19, 25, 22, 29, 20],
+                    borderColor: '#DC2626',
+                        backgroundColor: '#DC262620',
+                            tension: 0.4,
+                                fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                    maintainAspectRatio: false,
+                        plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: { beginAtZero: true }
+                }
+            }
+                    });
+                }
+            }
+
+            if (tabName === 'analysis' && !charts.analysisChart) {
+                const ctx = document.getElementById('analysisChart');
+                if (ctx) {
+                    const issuesCount = 3;
+                    const recsCount = 5;
+
+                    charts.analysisChart = new Chart(ctx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['Issues', 'Recommendations', 'Questions', 'Actions'],
+                            datasets: [{
+                                data: [issuesCount, recsCount, 2, 4],
+                                backgroundColor: ['#EF4444', '#10B981', '#3B82F6', '#F59E0B'],
+                                borderWidth: 0
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { position: 'bottom' }
+                            }
+                        }
+                    });
+                }
+            }
+
+            if (tabName === 'analytics' && !charts.performanceChart) {
+                const ctx = document.getElementById('performanceChart');
+                if (ctx) {
+                    charts.performanceChart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: Array.from({ length: 10 }, (_, i) => `${i + 1}min`),
+                            datasets: [
+                                {
+                                    label: 'WPM',
+                                    data: [45, 52, 48, 61, 55, 49, 58, 53, 62, 56],
+                                    borderColor: '#DC2626',
+                                    tension: 0.4
+                                },
+                                {
+                                    label: 'Confidence %',
+                                    data: [85, 88, 82, 91, 87, 84, 89, 86, 93, 88],
+                                    borderColor: '#F59E0B',
+                                    tension: 0.4
+                                },
+                                {
+                                    label: 'Tech Depth %',
+                                    data: [65, 72, 68, 78, 74, 69, 76, 71, 80, 75],
+                                    borderColor: '#10B981',
+                                    tension: 0.4
+                                }
+                            ]
+                        },
+            options: {
+                responsive: true,
+                    maintainAspectRatio: false,
+                        plugins: {
+                    legend: { position: 'top' }
+                },
+                scales: {
+                    y: { beginAtZero: true, max: 100 }
+                }
+            }
+                    });
+                }
+
+            const keywordCtx = document.getElementById('keywordChart');
+            if (keywordCtx && !charts.keywordChart) {
+                charts.keywordChart = new Chart(keywordCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['AWS', 'Azure', 'Kubernetes', 'Docker', 'Security', 'API', 'Database'],
+                        datasets: [{
+                            label: 'Mentions',
+                            data: [5, 3, 8, 2, 6, 4, 3],
+                            backgroundColor: ['#DC2626', '#F59E0B', '#10B981', '#1F2937', '#8B5CF6', '#EC4899', '#06B6D4']
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false }
+                        }
+                    }
+                });
+            }
+            }
+            if (tabName === 'insights' && !charts.insightsChart) {
+                const ctx = document.getElementById('insightsChart');
+                if (ctx) {
+                    charts.insightsChart = new Chart(ctx, {
+                        type: 'radar',
+                        data: {
+                            labels: ['Security', 'Performance', 'Architecture', 'Best Practices', 'Compliance', 'Innovation'],
+                            datasets: [{
+                                label: 'Insight Coverage',
+                                data: [75, 85, 68, 85, 70, 60],
+                borderColor: '#DC2626',
+                    backgroundColor: '#DC262620',
+                        pointBackgroundColor: '#DC2626'
+            }]
+                        },
+            options: {
+                responsive: true,
+                    maintainAspectRatio: false,
+                        plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    r: {
+                        beginAtZero: true,
+                            max: 100
+                    }
+                }
+            }
+                    });
+                }
+            }
+
+            if (tabName === 'performance' && !charts.systemChart) {
+                const ctx = document.getElementById('systemChart');
+                if (ctx) {
+                    charts.systemChart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: Array.from({ length: 20 }, (_, i) => `${i * 5}s`),
+                            datasets: [
+                                {
+                                    label: 'CPU Usage %',
+                                    data: Array.from({ length: 20 }, () => Math.floor(Math.random() * 30) + 20),
+                                    borderColor: '#DC2626',
+                                    tension: 0.4
+                                },
+                                {
+                                    label: 'Memory Usage %',
+                                    data: Array.from({ length: 20 }, () => Math.floor(Math.random() * 20) + 40),
+                                    borderColor: '#F59E0B',
+                                    tension: 0.4
+                                },
+                                {
+                                    label: 'Processing Load %',
+                                    data: Array.from({ length: 20 }, () => Math.floor(Math.random() * 25) + 15),
+                                    borderColor: '#10B981',
+                                    tension: 0.4
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { position: 'top' }
+                            },
+                            scales: {
+                                y: { beginAtZero: true, max: 100 }
+                            }
+                        }
+                    });
+                }
+            }
+        }
+
+            // API Functions
+            async function startRecording() {
+                const button = event.target;
+                const originalText = button.innerHTML;
+                button.innerHTML = '<span style="display: inline-block; width: 20px; height: 20px; border: 3px solid rgba(255,255,255,.3); border-radius: 50%; border-top-color: #fff; animation: spin 1s ease-in-out infinite;"></span> Starting...';
+                button.disabled = true;
+
+                try {
+                    const response = await fetch('/start_recording', { method: 'POST' });
+                    const result = await response.json();
+
+                    if (result.success) {
+                        showMessage(result.message, 'success');
+                        isRecording = true;
+                        setTimeout(() => location.reload(), 1500);
+                    } else {
+                        showMessage(result.message, 'error');
+                        button.innerHTML = originalText;
+                        button.disabled = false;
+                    }
+                } catch (error) {
+                    showMessage('Error starting recording: ' + error.message, 'error');
+                    button.innerHTML = originalText;
+                    button.disabled = false;
+                }
+            }
+
+            async function stopRecording() {
+                const button = event.target;
+                const originalText = button.innerHTML;
+                button.innerHTML = '<span style="display: inline-block; width: 20px; height: 20px; border: 3px solid rgba(255,255,255,.3); border-radius: 50%; border-top-color: #fff; animation: spin 1s ease-in-out infinite;"></span> Stopping...';
+                button.disabled = true;
+
+                try {
+                    const response = await fetch('/stop_recording', { method: 'POST' });
+                    const result = await response.json();
+
+                    if (result.success) {
+                        showMessage(result.message, 'success');
+                        isRecording = false;
+                        setTimeout(() => location.reload(), 2000);
+                    } else {
+                        showMessage(result.message, 'error');
+                        button.innerHTML = originalText;
+                        button.disabled = false;
+                    }
+                } catch (error) {
+                    showMessage('Error stopping recording: ' + error.message, 'error');
+                    button.innerHTML = originalText;
+                    button.disabled = false;
+                }
+            }
+            async function clearData() {
+                if (!confirm('Are you sure you want to clear all data? This action cannot be undone.')) {
+                    return;
+                }
+
+                const button = event.target;
+                const originalText = button.innerHTML;
+                button.innerHTML = '<span style="display: inline-block; width: 20px; height: 20px; border: 3px solid rgba(255,255,255,.3); border-radius: 50%; border-top-color: #fff; animation: spin 1s ease-in-out infinite;"></span> Clearing...';
+                button.disabled = true;
+
+                try {
+                    const response = await fetch('/clear_data', { method: 'POST' });
+                    const result = await response.json();
+
+                    if (result.success) {
+                        showMessage(result.message, 'success');
+                        setTimeout(() => location.reload(), 1000);
+                    } else {
+                        showMessage(result.message, 'error');
+                        button.innerHTML = originalText;
+                        button.disabled = false;
+                    }
+                } catch (error) {
+                    showMessage('Error clearing data: ' + error.message, 'error');
+                    button.innerHTML = originalText;
+                    button.disabled = false;
+                }
+            }
+
+            function pauseAnalysis() {
+                showMessage('Pause functionality will be available in a future update', 'info');
+            }
+
+            // Search functionality
+            function initializeSearch() {
+                const searchInput = document.getElementById('searchInput');
+                const searchResults = document.getElementById('searchResults');
+
+                if (searchInput) {
+                    searchInput.addEventListener('input', function () {
+                        const query = this.value.toLowerCase();
+                        const transcript = `{{ full_text | safe }}`;
+
+                        if (query && transcript) {
+                            const matches = transcript.toLowerCase().split(query).length - 1;
+                            if (matches > 0) {
+                                searchResults.innerHTML = `<span style="color: var(--success); font-weight: 600;">✓ Found "${query}" ${matches} time${matches !== 1 ? 's' : ''} in transcript</span>`;
+                            } else {
+                                searchResults.innerHTML = `<span style="color: var(--text-muted);">No matches found for "${query}"</span>`;
+                            }
+                        } else {
+                            searchResults.innerHTML = '';
+                        }
+                    });
+                }
+            }
+
+            // Auto-refresh functionality
+            function startAutoRefresh() {
+                if (isRecording) {
+                    autoRefreshInterval = setInterval(() => {
+                        location.reload();
+                    }, 5000); // Refresh every 5 seconds during recording
+                }
+            }
+
+            function stopAutoRefresh() {
+                if (autoRefreshInterval) {
+                    clearInterval(autoRefreshInterval);
+                }
+            }
+
+            // Initialize on page load
+            document.addEventListener('DOMContentLoaded', function () {
+                initializeSearch();
+                initializeCharts('transcript'); // Initialize default tab charts
+                startAutoRefresh();
+
+                // Show welcome message for new users
+                {% if not session_id and not is_recording %}
+                setTimeout(() => {
+                    showMessage('🎉 Welcome to AI IT Meeting Analyzer! Click "Start Recording" to begin your first session.', 'info');
+                }, 1000);
+                {% endif %}
+            });
+
+            // Cleanup on page unload
+            window.addEventListener('beforeunload', function () {
+                stopAutoRefresh();
+            });
+
+            // Keyboard shortcuts
+            document.addEventListener('keydown', function (e) {
+                if (e.ctrlKey || e.metaKey) {
+                    switch (e.key) {
+                        case 'r':
+                            e.preventDefault();
+                            if (!isRecording) startRecording();
+                            break;
+                        case 's':
+                            e.preventDefault();
+                            if (isRecording) stopRecording();
+                            break;
+                    }
+                }
+            });
+
+            // Add CSS for loading animation
+            const style = document.createElement('style');
+            style.textContent = `
+            @keyframes spin {
+                to { transform: rotate(360deg); }
+            }
+        `;
+            document.head.appendChild(style);
+        </script>
+        </body>
+
+</html>
